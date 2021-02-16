@@ -123,7 +123,9 @@ void InitAll(Local<Object> exports) {
 	ScannerWrap::Init(exports);
 }
 
-NODE_MODULE(yara, InitAll)
+NODE_MODULE_INIT() {
+	InitAll(exports);
+}
 
 void ExportConstants(Local<Object> target) {
 	Local<Object> variable_type = Nan::New<Object>();

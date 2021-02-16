@@ -123,7 +123,9 @@ void InitAll(Local<Object> exports) {
 	ScannerWrap::Init(exports);
 }
 
-NODE_MODULE(yara, InitAll)
+NODE_MODULE_INIT() {
+	InitAll(exports);
+}
 
 void ExportConstants(Local<Object> target) {
 	Local<Object> variable_type = Nan::New<Object>();
@@ -456,7 +458,7 @@ public:
 						);
 				}
 			}
-			
+
 			if (error_count == 0) {
 				rc = yr_compiler_get_rules(scanner_->compiler, &scanner_->rules);
 				if (rc != ERROR_SUCCESS)
@@ -1084,7 +1086,7 @@ NAN_METHOD(ScannerWrap::Scan) {
 			scan_req,
 			callback
 		);
-	
+
 	async_scan->matched_bytes = matched_bytes;
 
 	Nan::AsyncQueueWorker(async_scan);

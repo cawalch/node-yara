@@ -30,13 +30,13 @@ before(function(done) {
 })
 
 describe("index.js", function() {
-	describe("Scanner.reconfigureRules()", function() {
+	describe("Scanner.reconfigureVariables()", function() {
 		it("Will change variable value", function(done) {
 			var req = {
 				buffer: Buffer.from("my name is stephen")
 			}
 
-			scanner.reconfigureRules( {variables: [
+			scanner.reconfigureVariables( {variables: [
 					{type: yara.VariableType.Integer, id: "age", value: 35}
 				]
 			})

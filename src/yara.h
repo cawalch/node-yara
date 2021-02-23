@@ -37,7 +37,7 @@ private:
 	static NAN_METHOD(Configure);
 	static NAN_METHOD(Scan);
 	static NAN_METHOD(GetRules);
-	static NAN_METHOD(ReconfigureRules);
+	static NAN_METHOD(ReconfigureVariables);
 
 	pthread_rwlock_t lock;
 };

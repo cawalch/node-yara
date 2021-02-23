@@ -222,7 +222,7 @@ void ScannerWrap::Init(Local<Object> exports) {
 	Nan::SetPrototypeMethod(tpl, "configure", Configure);
 	Nan::SetPrototypeMethod(tpl, "scan", Scan);
 	Nan::SetPrototypeMethod(tpl, "getRules", GetRules);
-	Nan::SetPrototypeMethod(tpl, "reconfigureRules", ReconfigureRules);
+	Nan::SetPrototypeMethod(tpl, "reconfigureVariables", ReconfigureVariables);
 
 	ScannerWrap_constructor.Reset(tpl);
 	Nan::Set(exports, Nan::New("ScannerWrap").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
@@ -953,7 +953,7 @@ int scanCallback(int message, void* data, void* param) {
 	return CALLBACK_CONTINUE;
 }
 
-NAN_METHOD(ScannerWrap::ReconfigureRules) {
+NAN_METHOD(ScannerWrap::ReconfigureVariables) {
 	Nan::HandleScope scope;
 
 	ScannerWrap* scanner = ScannerWrap::Unwrap<ScannerWrap>(info.This());
@@ -963,7 +963,7 @@ NAN_METHOD(ScannerWrap::ReconfigureRules) {
 	bool rules_compiled = scanner->rules ? true : false;
 
 	if (! rules_compiled) {
-		Nan::ThrowError("Please call configure() before reconfigureRules()");
+		Nan::ThrowError("Please call configure() before reconfigureVariables()");
 		return;
 	}
 	Local<Object> options = Nan::To<Object>(info[0]).ToLocalChecked();

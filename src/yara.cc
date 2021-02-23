@@ -956,13 +956,16 @@ int scanCallback(int message, void* data, void* param) {
 NAN_METHOD(ScannerWrap::ReconfigureRules) {
 	Nan::HandleScope scope;
 
-	CompiledRuleList compiled_rules;
-	CompiledRuleList::iterator compiled_rules_it;
-	YR_RULE* rule;
-
 	ScannerWrap* scanner = ScannerWrap::Unwrap<ScannerWrap>(info.This());
-	VarConfigList* var_configs = new VarConfigList();
 
+	scanner->lock_read();
+
+	bool rules_compiled = scanner->rules ? true : false;
+
+	if (! rules_compiled) {
+		Nan::ThrowError("Please call configure() before reconfigureRules()");
+		return;
+	}
 	Local<Object> options = Nan::To<Object>(info[0]).ToLocalChecked();
 
 	Local<Array> variables = Local<Array>::Cast(
@@ -1037,21 +1040,31 @@ NAN_METHOD(ScannerWrap::ReconfigureRules) {
 			}
 		}
 	}
+
+	scanner->unlock();
 }
 
 NAN_METHOD(ScannerWrap::GetRules) {
 	Nan::HandleScope scope;
 
+	ScannerWrap* scanner = ScannerWrap::Unwrap<ScannerWrap>(info.This());
+
+	scanner->lock_read();
+
+	bool rules_compiled = scanner->rules ? true : false;
+
+	if (! rules_compiled) {
+		Nan::ThrowError("Please call configure() before getRules()");
+		return;
+	}
+
 	CompiledRuleList compiled_rules;
 	CompiledRuleList::iterator compiled_rules_it;
 	YR_RULE* rule;
 
-	ScannerWrap* scanner = ScannerWrap::Unwrap<ScannerWrap>(info.This());
-
 	yr_rules_foreach(scanner->rules, rule) {
 		CompiledRule* compiled_rule;
 		YR_META* meta;
-		YR_STRING* rule_string;
 		const char* tag;
 
 		compiled_rule = new CompiledRule();
@@ -1121,6 +1134,8 @@ NAN_METHOD(ScannerWrap::GetRules) {
 	Nan::Set(res, Nan::New("rules").ToLocalChecked(), rules);
 
 	info.GetReturnValue().Set(res);
+
+	scanner->unlock();
 }
 
 NAN_METHOD(ScannerWrap::Scan) {

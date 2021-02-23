@@ -960,85 +960,90 @@ NAN_METHOD(ScannerWrap::ReconfigureVariables) {
 
 	scanner->lock_read();
 
-	bool rules_compiled = scanner->rules ? true : false;
+	try {
+		bool rules_compiled = scanner->rules ? true : false;
 
-	if (! rules_compiled) {
-		Nan::ThrowError("Please call configure() before reconfigureVariables()");
-		return;
-	}
-	Local<Object> options = Nan::To<Object>(info[0]).ToLocalChecked();
+		if (! rules_compiled) {
+			Nan::ThrowError("Please call configure() before reconfigureVariables()");
+			return;
+		}
+		Local<Object> options = Nan::To<Object>(info[0]).ToLocalChecked();
 
-	Local<Array> variables = Local<Array>::Cast(
+		Local<Array> variables = Local<Array>::Cast(
 			Nan::Get(options, Nan::New("variables").ToLocalChecked()).ToLocalChecked()
 		);
 
-	for (uint32_t i = 0; i < variables->Length(); i++) {
-		if (Nan::Get(variables, i).ToLocalChecked()->IsObject()) {
-			Local<Object> variable = Nan::To<Object>(Nan::Get(variables, i).ToLocalChecked()).ToLocalChecked();
+		for (uint32_t i = 0; i < variables->Length(); i++) {
+			if (Nan::Get(variables, i).ToLocalChecked()->IsObject()) {
+				Local<Object> variable = Nan::To<Object>(Nan::Get(variables, i).ToLocalChecked()).ToLocalChecked();
 
-			VarType type;
-			std::string id;
+				VarType type;
+				std::string id;
 
-			Local<Uint32> t = Nan::To<Uint32>(Nan::Get(variable, Nan::New("type").ToLocalChecked()).ToLocalChecked()).ToLocalChecked();
-			type = (VarType) t->Value();
+				Local<Uint32> t = Nan::To<Uint32>(Nan::Get(variable, Nan::New("type").ToLocalChecked()).ToLocalChecked()).ToLocalChecked();
+				type = (VarType) t->Value();
 
-			Local<String> i = Nan::To<String>(Nan::Get(variable, Nan::New("id").ToLocalChecked()).ToLocalChecked()).ToLocalChecked();
-			id = *Nan::Utf8String(i);
+				Local<String> i = Nan::To<String>(Nan::Get(variable, Nan::New("id").ToLocalChecked()).ToLocalChecked()).ToLocalChecked();
+				id = *Nan::Utf8String(i);
 
-			VarConfig* var_config = new VarConfig();
+				VarConfig* var_config = new VarConfig();
 
-			var_config->type = type;
-			var_config->id = id;
+				var_config->type = type;
+				var_config->id = id;
 
-			int rc;
+				int rc;
 
-			switch (type) {
-				case IntegerVarType:
+				switch (type) {
+					case IntegerVarType:
 					var_config->value_integer = Nan::To<Integer>(Nan::Get(variable, Nan::New("value").ToLocalChecked()).ToLocalChecked()).ToLocalChecked()->Value();
 					rc = yr_rules_define_integer_variable(
-							scanner->rules,
-							var_config->id.c_str(),
-							var_config->value_integer
-						);
+						scanner->rules,
+						var_config->id.c_str(),
+						var_config->value_integer
+					);
 					if (rc != ERROR_SUCCESS)
-						yara_throw(YaraError, "yr_rules_define_integer_variable() failed: "
-								<< getErrorString(rc));
+					yara_throw(YaraError, "yr_rules_define_integer_variable() failed: "
+					<< getErrorString(rc));
 					break;
-				case FloatVarType:
+					case FloatVarType:
 					var_config->value_float = Nan::To<Number>(Nan::Get(variable, Nan::New("value").ToLocalChecked()).ToLocalChecked()).ToLocalChecked()->Value();
 					rc = yr_rules_define_float_variable(
-							scanner->rules,
-							var_config->id.c_str(),
-							var_config->value_float
-						);
+						scanner->rules,
+						var_config->id.c_str(),
+						var_config->value_float
+					);
 					if (rc != ERROR_SUCCESS)
-						yara_throw(YaraError, "yr_rules_define_float_variable() failed: "
-								<< getErrorString(rc));
+					yara_throw(YaraError, "yr_rules_define_float_variable() failed: "
+					<< getErrorString(rc));
 					break;
-				case BooleanVarType:
+					case BooleanVarType:
 					var_config->value_boolean = Nan::To<Boolean>(Nan::Get(variable, Nan::New("value").ToLocalChecked()).ToLocalChecked()).ToLocalChecked()->Value();
 					rc = yr_rules_define_boolean_variable(
-							scanner->rules,
-							var_config->id.c_str(),
-							var_config->value_boolean
-						);
+						scanner->rules,
+						var_config->id.c_str(),
+						var_config->value_boolean
+					);
 					if (rc != ERROR_SUCCESS)
-						yara_throw(YaraError, "yr_rules_define_boolean_variable() failed: "
-								<< getErrorString(rc));
+					yara_throw(YaraError, "yr_rules_define_boolean_variable() failed: "
+					<< getErrorString(rc));
 					break;
-				case StringVarType:
+					case StringVarType:
 					var_config->value_string = *Nan::Utf8String(Nan::To<String>(Nan::Get(variable, Nan::New("value").ToLocalChecked()).ToLocalChecked()).ToLocalChecked());
 					rc = yr_rules_define_string_variable(
-							scanner->rules,
-							var_config->id.c_str(),
-							var_config->value_string.c_str()
-						);
+						scanner->rules,
+						var_config->id.c_str(),
+						var_config->value_string.c_str()
+					);
 					if (rc != ERROR_SUCCESS)
-						yara_throw(YaraError, "yr_rules_define_string_variable() failed: "
-								<< getErrorString(rc));
+					yara_throw(YaraError, "yr_rules_define_string_variable() failed: "
+					<< getErrorString(rc));
 					break;
+				}
 			}
 		}
+	} catch(std::exception& error) {
+		scanner->unlock();
+		throw error;
 	}
 
 	scanner->unlock();
@@ -1051,89 +1056,94 @@ NAN_METHOD(ScannerWrap::GetRules) {
 
 	scanner->lock_read();
 
-	bool rules_compiled = scanner->rules ? true : false;
+	try {
+		bool rules_compiled = scanner->rules ? true : false;
 
-	if (! rules_compiled) {
-		Nan::ThrowError("Please call configure() before getRules()");
-		return;
-	}
-
-	CompiledRuleList compiled_rules;
-	CompiledRuleList::iterator compiled_rules_it;
-	YR_RULE* rule;
-
-	yr_rules_foreach(scanner->rules, rule) {
-		CompiledRule* compiled_rule;
-		YR_META* meta;
-		const char* tag;
-
-		compiled_rule = new CompiledRule();
-
-		compiled_rule->id = rule->identifier;
-
-		yr_rule_tags_foreach(rule, tag) {
-			compiled_rule->tags.push_back(std::string(tag));
+		if (! rules_compiled) {
+			Nan::ThrowError("Please call configure() before getRules()");
+			return;
 		}
 
-		yr_rule_metas_foreach(rule, meta) {
-			std::ostringstream oss;
-			oss << meta->type << ":" << meta->identifier << ":";
+		CompiledRuleList compiled_rules;
+		CompiledRuleList::iterator compiled_rules_it;
+		YR_RULE* rule;
 
-			if (meta->type == META_TYPE_INTEGER)
+		yr_rules_foreach(scanner->rules, rule) {
+			CompiledRule* compiled_rule;
+			YR_META* meta;
+			const char* tag;
+
+			compiled_rule = new CompiledRule();
+
+			compiled_rule->id = rule->identifier;
+
+			yr_rule_tags_foreach(rule, tag) {
+				compiled_rule->tags.push_back(std::string(tag));
+			}
+
+			yr_rule_metas_foreach(rule, meta) {
+				std::ostringstream oss;
+				oss << meta->type << ":" << meta->identifier << ":";
+
+				if (meta->type == META_TYPE_INTEGER)
 				oss << meta->integer;
-			else if (meta->type == META_TYPE_BOOLEAN)
+				else if (meta->type == META_TYPE_BOOLEAN)
 				oss << (meta->integer ? "true" : "false");
-			else
+				else
 				oss << meta->string;
 
-			compiled_rule->metas.push_back(oss.str());
+				compiled_rule->metas.push_back(oss.str());
+			}
+
+			compiled_rules.push_back(compiled_rule);
 		}
 
-		compiled_rules.push_back(compiled_rule);
+		Local<Object> res = Nan::New<Object>();
+
+		Local<Array> rules = Nan::New<Array>();
+		int rules_index = 0;
+
+		for (CompiledRuleList::iterator compiled_rules_it = compiled_rules.begin();
+		compiled_rules_it != compiled_rules.end();
+		compiled_rules_it++) {
+			CompiledRule* compiled_rule = *compiled_rules_it;
+
+			Local<Object> rule = Nan::New<Object>();
+
+			Local<Array> tags = Nan::New<Array>();
+			int tags_index = 0;
+
+			for (std::list<std::string>::iterator tags_it = compiled_rule->tags.begin();
+			tags_it != compiled_rule->tags.end();
+			tags_it++) {
+				Local<String> tag = Nan::New((*tags_it).c_str()).ToLocalChecked();
+				Nan::Set(tags, tags_index++, tag);
+			}
+
+			Local<Array> metas = Nan::New<Array>();
+			int metas_index = 0;
+
+			for (std::list<std::string>::iterator metas_it = compiled_rule->metas.begin();
+			metas_it != compiled_rule->metas.end();
+			metas_it++) {
+				Local<String> meta = Nan::New((*metas_it).c_str()).ToLocalChecked();
+				Nan::Set(metas, metas_index++, meta);
+			}
+
+			Nan::Set(rule, Nan::New("id").ToLocalChecked(), Nan::New(compiled_rule->id.c_str()).ToLocalChecked());
+			Nan::Set(rule, Nan::New("tags").ToLocalChecked(), tags);
+			Nan::Set(rule, Nan::New("metas").ToLocalChecked(), metas);
+
+			Nan::Set(rules, rules_index++, rule);
+		}
+
+		Nan::Set(res, Nan::New("rules").ToLocalChecked(), rules);
+
+		info.GetReturnValue().Set(res);
+	} catch(std::exception& error) {
+		scanner->unlock();
+		throw error;
 	}
-
-	Local<Object> res = Nan::New<Object>();
-
-	Local<Array> rules = Nan::New<Array>();
-	int rules_index = 0;
-
-	for (CompiledRuleList::iterator compiled_rules_it = compiled_rules.begin();
-			compiled_rules_it != compiled_rules.end();
-			compiled_rules_it++) {
-		CompiledRule* compiled_rule = *compiled_rules_it;
-
-		Local<Object> rule = Nan::New<Object>();
-
-		Local<Array> tags = Nan::New<Array>();
-		int tags_index = 0;
-
-		for (std::list<std::string>::iterator tags_it = compiled_rule->tags.begin();
-				tags_it != compiled_rule->tags.end();
-				tags_it++) {
-			Local<String> tag = Nan::New((*tags_it).c_str()).ToLocalChecked();
-			Nan::Set(tags, tags_index++, tag);
-		}
-
-		Local<Array> metas = Nan::New<Array>();
-		int metas_index = 0;
-
-		for (std::list<std::string>::iterator metas_it = compiled_rule->metas.begin();
-				metas_it != compiled_rule->metas.end();
-				metas_it++) {
-			Local<String> meta = Nan::New((*metas_it).c_str()).ToLocalChecked();
-			Nan::Set(metas, metas_index++, meta);
-		}
-
-		Nan::Set(rule, Nan::New("id").ToLocalChecked(), Nan::New(compiled_rule->id.c_str()).ToLocalChecked());
-		Nan::Set(rule, Nan::New("tags").ToLocalChecked(), tags);
-		Nan::Set(rule, Nan::New("metas").ToLocalChecked(), metas);
-
-		Nan::Set(rules, rules_index++, rule);
-	}
-
-	Nan::Set(res, Nan::New("rules").ToLocalChecked(), rules);
-
-	info.GetReturnValue().Set(res);
 
 	scanner->unlock();
 }

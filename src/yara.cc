@@ -222,6 +222,7 @@ void ScannerWrap::Init(Local<Object> exports) {
 	Nan::SetPrototypeMethod(tpl, "configure", Configure);
 	Nan::SetPrototypeMethod(tpl, "scan", Scan);
 	Nan::SetPrototypeMethod(tpl, "getRules", GetRules);
+	Nan::SetPrototypeMethod(tpl, "reconfigureRules", ReconfigureRules);
 
 	ScannerWrap_constructor.Reset(tpl);
 	Nan::Set(exports, Nan::New("ScannerWrap").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
@@ -950,6 +951,92 @@ int scanCallback(int message, void* data, void* param) {
 	};
 
 	return CALLBACK_CONTINUE;
+}
+
+NAN_METHOD(ScannerWrap::ReconfigureRules) {
+	Nan::HandleScope scope;
+
+	CompiledRuleList compiled_rules;
+	CompiledRuleList::iterator compiled_rules_it;
+	YR_RULE* rule;
+
+	ScannerWrap* scanner = ScannerWrap::Unwrap<ScannerWrap>(info.This());
+	VarConfigList* var_configs = new VarConfigList();
+
+	Local<Object> options = Nan::To<Object>(info[0]).ToLocalChecked();
+
+	Local<Array> variables = Local<Array>::Cast(
+			Nan::Get(options, Nan::New("variables").ToLocalChecked()).ToLocalChecked()
+		);
+
+	for (uint32_t i = 0; i < variables->Length(); i++) {
+		if (Nan::Get(variables, i).ToLocalChecked()->IsObject()) {
+			Local<Object> variable = Nan::To<Object>(Nan::Get(variables, i).ToLocalChecked()).ToLocalChecked();
+
+			VarType type;
+			std::string id;
+
+			Local<Uint32> t = Nan::To<Uint32>(Nan::Get(variable, Nan::New("type").ToLocalChecked()).ToLocalChecked()).ToLocalChecked();
+			type = (VarType) t->Value();
+
+			Local<String> i = Nan::To<String>(Nan::Get(variable, Nan::New("id").ToLocalChecked()).ToLocalChecked()).ToLocalChecked();
+			id = *Nan::Utf8String(i);
+
+			VarConfig* var_config = new VarConfig();
+
+			var_config->type = type;
+			var_config->id = id;
+
+			int rc;
+
+			switch (type) {
+				case IntegerVarType:
+					var_config->value_integer = Nan::To<Integer>(Nan::Get(variable, Nan::New("value").ToLocalChecked()).ToLocalChecked()).ToLocalChecked()->Value();
+					rc = yr_rules_define_integer_variable(
+							scanner->rules,
+							var_config->id.c_str(),
+							var_config->value_integer
+						);
+					if (rc != ERROR_SUCCESS)
+						yara_throw(YaraError, "yr_rules_define_integer_variable() failed: "
+								<< getErrorString(rc));
+					break;
+				case FloatVarType:
+					var_config->value_float = Nan::To<Number>(Nan::Get(variable, Nan::New("value").ToLocalChecked()).ToLocalChecked()).ToLocalChecked()->Value();
+					rc = yr_rules_define_float_variable(
+							scanner->rules,
+							var_config->id.c_str(),
+							var_config->value_float
+						);
+					if (rc != ERROR_SUCCESS)
+						yara_throw(YaraError, "yr_rules_define_float_variable() failed: "
+								<< getErrorString(rc));
+					break;
+				case BooleanVarType:
+					var_config->value_boolean = Nan::To<Boolean>(Nan::Get(variable, Nan::New("value").ToLocalChecked()).ToLocalChecked()).ToLocalChecked()->Value();
+					rc = yr_rules_define_boolean_variable(
+							scanner->rules,
+							var_config->id.c_str(),
+							var_config->value_boolean
+						);
+					if (rc != ERROR_SUCCESS)
+						yara_throw(YaraError, "yr_rules_define_boolean_variable() failed: "
+								<< getErrorString(rc));
+					break;
+				case StringVarType:
+					var_config->value_string = *Nan::Utf8String(Nan::To<String>(Nan::Get(variable, Nan::New("value").ToLocalChecked()).ToLocalChecked()).ToLocalChecked());
+					rc = yr_rules_define_string_variable(
+							scanner->rules,
+							var_config->id.c_str(),
+							var_config->value_string.c_str()
+						);
+					if (rc != ERROR_SUCCESS)
+						yara_throw(YaraError, "yr_rules_define_string_variable() failed: "
+								<< getErrorString(rc));
+					break;
+			}
+		}
+	}
 }
 
 NAN_METHOD(ScannerWrap::GetRules) {

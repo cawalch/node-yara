@@ -1,7 +1,7 @@
 #ifndef YARA_H
 #define YARA_H
 
-#include <pthread.h>
+#include <mutex>
 
 #include <nan.h>
 
@@ -22,12 +22,10 @@ class ScannerWrap : public Nan::ObjectWrap {
 public:
 	static void Init(Local<Object> exports);
 
-	void lock_read(void);
-	void lock_write(void);
-	void unlock(void);
-
 	YR_COMPILER* compiler;
 	YR_RULES* rules;
+
+	std::mutex mutex;
 
 private:
 	ScannerWrap();
@@ -38,8 +36,6 @@ private:
 	static NAN_METHOD(Scan);
 	static NAN_METHOD(GetRules);
 	static NAN_METHOD(ReconfigureVariables);
-
-	pthread_rwlock_t lock;
 };
 
 }; /* namespace yara */

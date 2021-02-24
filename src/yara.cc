@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <string>
 #include <sstream>
+#include <mutex>
 
 #include <errno.h>
 #include <stdio.h>
@@ -229,7 +230,6 @@ void ScannerWrap::Init(Local<Object> exports) {
 }
 
 ScannerWrap::ScannerWrap() : compiler(NULL), rules(NULL) {
-	pthread_rwlock_init(&lock, NULL);
 }
 
 ScannerWrap::~ScannerWrap() {
@@ -242,20 +242,6 @@ ScannerWrap::~ScannerWrap() {
 		yr_rules_destroy(rules);
 		rules = NULL;
 	}
-
-	pthread_rwlock_destroy(&lock);
-}
-
-void ScannerWrap::lock_read(void) {
-	pthread_rwlock_rdlock(&lock);
-}
-
-void ScannerWrap::lock_write(void) {
-	pthread_rwlock_wrlock(&lock);
-}
-
-void ScannerWrap::unlock(void) {
-	pthread_rwlock_unlock(&lock);
 }
 
 NAN_METHOD(ScannerWrap::New) {
@@ -341,7 +327,7 @@ public:
 	}
 
 	void Execute() {
-		scanner_->lock_write();
+		std::lock_guard<std::mutex> lock(scanner_->mutex);
 
 		try {
 			if (scanner_->rules) {
@@ -468,8 +454,6 @@ public:
 		} catch(std::exception& error) {
 			SetErrorMessage(error.what());
 		}
-
-		scanner_->unlock();
 	}
 
 	uint32_t error_count;
@@ -752,7 +736,7 @@ public:
 	}
 
 	void Execute() {
-		scanner_->lock_read();
+		std::lock_guard<std::mutex> lock(scanner_->mutex);
 
 		try {
 			int rc;
@@ -787,8 +771,6 @@ public:
 		} catch(std::exception& error) {
 			SetErrorMessage(error.what());
 		}
-
-		scanner_->unlock();
 	}
 
 	ScanRuleMatchList rule_matches;
@@ -958,7 +940,7 @@ NAN_METHOD(ScannerWrap::ReconfigureVariables) {
 
 	ScannerWrap* scanner = ScannerWrap::Unwrap<ScannerWrap>(info.This());
 
-	scanner->lock_read();
+	std::lock_guard<std::mutex> lock(scanner->mutex);
 
 	try {
 		bool rules_compiled = scanner->rules ? true : false;
@@ -1042,11 +1024,8 @@ NAN_METHOD(ScannerWrap::ReconfigureVariables) {
 			}
 		}
 	} catch(std::exception& error) {
-		scanner->unlock();
 		throw error;
 	}
-
-	scanner->unlock();
 }
 
 NAN_METHOD(ScannerWrap::GetRules) {
@@ -1054,7 +1033,7 @@ NAN_METHOD(ScannerWrap::GetRules) {
 
 	ScannerWrap* scanner = ScannerWrap::Unwrap<ScannerWrap>(info.This());
 
-	scanner->lock_read();
+	std::lock_guard<std::mutex> lock(scanner->mutex);
 
 	try {
 		bool rules_compiled = scanner->rules ? true : false;
@@ -1141,11 +1120,8 @@ NAN_METHOD(ScannerWrap::GetRules) {
 
 		info.GetReturnValue().Set(res);
 	} catch(std::exception& error) {
-		scanner->unlock();
 		throw error;
 	}
-
-	scanner->unlock();
 }
 
 NAN_METHOD(ScannerWrap::Scan) {
@@ -1168,9 +1144,8 @@ NAN_METHOD(ScannerWrap::Scan) {
 
 	ScannerWrap* scanner = ScannerWrap::Unwrap<ScannerWrap>(info.This());
 
-	scanner->lock_read();
+	std::lock_guard<std::mutex> lock(scanner->mutex);
 	bool rules_compiled = scanner->rules ? true : false;
-	scanner->unlock();
 
 	if (! rules_compiled) {
 		Nan::ThrowError("Please call configure() before scan()");

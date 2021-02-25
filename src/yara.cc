@@ -455,6 +455,10 @@ public:
 									: NULL
 						);
 				}
+
+				if (error_count > 0) {
+					break;
+				}
 			}
 			
 			if (error_count == 0) {

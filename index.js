@@ -56,6 +56,10 @@ Scanner.prototype.getRules = function() {
 	return result;
 }
 
+Scanner.prototype.reconfigureVariables = function(options) {
+	return this.yara.reconfigureVariables(options);
+}
+
 Scanner.prototype.configure = function(options, cb) {
 	return this.yara.configure(options, function(error, warnings) {
 		if (warnings) {

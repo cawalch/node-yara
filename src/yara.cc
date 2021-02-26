@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <string>
 #include <sstream>
+#include <mutex>
 
 #include <errno.h>
 #include <stdio.h>
@@ -224,13 +225,13 @@ void ScannerWrap::Init(Local<Object> exports) {
 	Nan::SetPrototypeMethod(tpl, "configure", Configure);
 	Nan::SetPrototypeMethod(tpl, "scan", Scan);
 	Nan::SetPrototypeMethod(tpl, "getRules", GetRules);
+	Nan::SetPrototypeMethod(tpl, "reconfigureVariables", ReconfigureVariables);
 
 	ScannerWrap_constructor.Reset(tpl);
 	Nan::Set(exports, Nan::New("ScannerWrap").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
 }
 
 ScannerWrap::ScannerWrap() : compiler(NULL), rules(NULL) {
-	pthread_rwlock_init(&lock, NULL);
 }
 
 ScannerWrap::~ScannerWrap() {
@@ -243,20 +244,6 @@ ScannerWrap::~ScannerWrap() {
 		yr_rules_destroy(rules);
 		rules = NULL;
 	}
-
-	pthread_rwlock_destroy(&lock);
-}
-
-void ScannerWrap::lock_read(void) {
-	pthread_rwlock_rdlock(&lock);
-}
-
-void ScannerWrap::lock_write(void) {
-	pthread_rwlock_wrlock(&lock);
-}
-
-void ScannerWrap::unlock(void) {
-	pthread_rwlock_unlock(&lock);
 }
 
 NAN_METHOD(ScannerWrap::New) {
@@ -342,7 +329,7 @@ public:
 	}
 
 	void Execute() {
-		scanner_->lock_write();
+		std::lock_guard<std::mutex> lock(scanner_->mutex);
 
 		try {
 			if (scanner_->rules) {
@@ -469,8 +456,6 @@ public:
 		} catch(std::exception& error) {
 			SetErrorMessage(error.what());
 		}
-
-		scanner_->unlock();
 	}
 
 	uint32_t error_count;
@@ -753,7 +738,7 @@ public:
 	}
 
 	void Execute() {
-		scanner_->lock_read();
+		std::lock_guard<std::mutex> lock(scanner_->mutex);
 
 		try {
 			int rc;
@@ -788,8 +773,6 @@ public:
 		} catch(std::exception& error) {
 			SetErrorMessage(error.what());
 		}
-
-		scanner_->unlock();
 	}
 
 	ScanRuleMatchList rule_matches;
@@ -954,19 +937,116 @@ int scanCallback(int message, void* data, void* param) {
 	return CALLBACK_CONTINUE;
 }
 
+NAN_METHOD(ScannerWrap::ReconfigureVariables) {
+	Nan::HandleScope scope;
+
+	ScannerWrap* scanner = ScannerWrap::Unwrap<ScannerWrap>(info.This());
+
+	std::lock_guard<std::mutex> lock(scanner->mutex);
+
+	bool rules_compiled = scanner->rules ? true : false;
+
+	if (! rules_compiled) {
+		Nan::ThrowError("Please call configure() before reconfigureVariables()");
+		return;
+	}
+	Local<Object> options = Nan::To<Object>(info[0]).ToLocalChecked();
+
+	Local<Array> variables = Local<Array>::Cast(
+		Nan::Get(options, Nan::New("variables").ToLocalChecked()).ToLocalChecked()
+	);
+
+	for (uint32_t i = 0; i < variables->Length(); i++) {
+		if (Nan::Get(variables, i).ToLocalChecked()->IsObject()) {
+			Local<Object> variable = Nan::To<Object>(Nan::Get(variables, i).ToLocalChecked()).ToLocalChecked();
+
+			VarType type;
+			std::string id;
+
+			Local<Uint32> t = Nan::To<Uint32>(Nan::Get(variable, Nan::New("type").ToLocalChecked()).ToLocalChecked()).ToLocalChecked();
+			type = (VarType) t->Value();
+
+			Local<String> i = Nan::To<String>(Nan::Get(variable, Nan::New("id").ToLocalChecked()).ToLocalChecked()).ToLocalChecked();
+			id = *Nan::Utf8String(i);
+
+			VarConfig* var_config = new VarConfig();
+
+			var_config->type = type;
+			var_config->id = id;
+
+			int rc;
+
+			switch (type) {
+				case IntegerVarType:
+				var_config->value_integer = Nan::To<Integer>(Nan::Get(variable, Nan::New("value").ToLocalChecked()).ToLocalChecked()).ToLocalChecked()->Value();
+				rc = yr_rules_define_integer_variable(
+					scanner->rules,
+					var_config->id.c_str(),
+					var_config->value_integer
+				);
+				if (rc != ERROR_SUCCESS)
+				yara_throw(YaraError, "yr_rules_define_integer_variable() failed: "
+				<< getErrorString(rc));
+				break;
+				case FloatVarType:
+				var_config->value_float = Nan::To<Number>(Nan::Get(variable, Nan::New("value").ToLocalChecked()).ToLocalChecked()).ToLocalChecked()->Value();
+				rc = yr_rules_define_float_variable(
+					scanner->rules,
+					var_config->id.c_str(),
+					var_config->value_float
+				);
+				if (rc != ERROR_SUCCESS)
+				yara_throw(YaraError, "yr_rules_define_float_variable() failed: "
+				<< getErrorString(rc));
+				break;
+				case BooleanVarType:
+				var_config->value_boolean = Nan::To<Boolean>(Nan::Get(variable, Nan::New("value").ToLocalChecked()).ToLocalChecked()).ToLocalChecked()->Value();
+				rc = yr_rules_define_boolean_variable(
+					scanner->rules,
+					var_config->id.c_str(),
+					var_config->value_boolean
+				);
+				if (rc != ERROR_SUCCESS)
+				yara_throw(YaraError, "yr_rules_define_boolean_variable() failed: "
+				<< getErrorString(rc));
+				break;
+				case StringVarType:
+				var_config->value_string = *Nan::Utf8String(Nan::To<String>(Nan::Get(variable, Nan::New("value").ToLocalChecked()).ToLocalChecked()).ToLocalChecked());
+				rc = yr_rules_define_string_variable(
+					scanner->rules,
+					var_config->id.c_str(),
+					var_config->value_string.c_str()
+				);
+				if (rc != ERROR_SUCCESS)
+				yara_throw(YaraError, "yr_rules_define_string_variable() failed: "
+				<< getErrorString(rc));
+				break;
+			}
+		}
+	}
+}
+
 NAN_METHOD(ScannerWrap::GetRules) {
 	Nan::HandleScope scope;
+
+	ScannerWrap* scanner = ScannerWrap::Unwrap<ScannerWrap>(info.This());
+
+	std::lock_guard<std::mutex> lock(scanner->mutex);
+
+	bool rules_compiled = scanner->rules ? true : false;
+
+	if (! rules_compiled) {
+		Nan::ThrowError("Please call configure() before getRules()");
+		return;
+	}
 
 	CompiledRuleList compiled_rules;
 	CompiledRuleList::iterator compiled_rules_it;
 	YR_RULE* rule;
 
-	ScannerWrap* scanner = ScannerWrap::Unwrap<ScannerWrap>(info.This());
-
 	yr_rules_foreach(scanner->rules, rule) {
 		CompiledRule* compiled_rule;
 		YR_META* meta;
-		YR_STRING* rule_string;
 		const char* tag;
 
 		compiled_rule = new CompiledRule();
@@ -982,11 +1062,11 @@ NAN_METHOD(ScannerWrap::GetRules) {
 			oss << meta->type << ":" << meta->identifier << ":";
 
 			if (meta->type == META_TYPE_INTEGER)
-				oss << meta->integer;
+			oss << meta->integer;
 			else if (meta->type == META_TYPE_BOOLEAN)
-				oss << (meta->integer ? "true" : "false");
+			oss << (meta->integer ? "true" : "false");
 			else
-				oss << meta->string;
+			oss << meta->string;
 
 			compiled_rule->metas.push_back(oss.str());
 		}
@@ -1000,8 +1080,8 @@ NAN_METHOD(ScannerWrap::GetRules) {
 	int rules_index = 0;
 
 	for (CompiledRuleList::iterator compiled_rules_it = compiled_rules.begin();
-			compiled_rules_it != compiled_rules.end();
-			compiled_rules_it++) {
+	compiled_rules_it != compiled_rules.end();
+	compiled_rules_it++) {
 		CompiledRule* compiled_rule = *compiled_rules_it;
 
 		Local<Object> rule = Nan::New<Object>();
@@ -1010,8 +1090,8 @@ NAN_METHOD(ScannerWrap::GetRules) {
 		int tags_index = 0;
 
 		for (std::list<std::string>::iterator tags_it = compiled_rule->tags.begin();
-				tags_it != compiled_rule->tags.end();
-				tags_it++) {
+		tags_it != compiled_rule->tags.end();
+		tags_it++) {
 			Local<String> tag = Nan::New((*tags_it).c_str()).ToLocalChecked();
 			Nan::Set(tags, tags_index++, tag);
 		}
@@ -1020,8 +1100,8 @@ NAN_METHOD(ScannerWrap::GetRules) {
 		int metas_index = 0;
 
 		for (std::list<std::string>::iterator metas_it = compiled_rule->metas.begin();
-				metas_it != compiled_rule->metas.end();
-				metas_it++) {
+		metas_it != compiled_rule->metas.end();
+		metas_it++) {
 			Local<String> meta = Nan::New((*metas_it).c_str()).ToLocalChecked();
 			Nan::Set(metas, metas_index++, meta);
 		}
@@ -1058,9 +1138,8 @@ NAN_METHOD(ScannerWrap::Scan) {
 
 	ScannerWrap* scanner = ScannerWrap::Unwrap<ScannerWrap>(info.This());
 
-	scanner->lock_read();
+	std::lock_guard<std::mutex> lock(scanner->mutex);
 	bool rules_compiled = scanner->rules ? true : false;
-	scanner->unlock();
 
 	if (! rules_compiled) {
 		Nan::ThrowError("Please call configure() before scan()");

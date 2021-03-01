@@ -460,7 +460,7 @@ public:
 					break;
 				}
 			}
-			
+
 			if (error_count == 0) {
 				rc = yr_compiler_get_rules(scanner_->compiler, &scanner_->rules);
 				if (rc != ERROR_SUCCESS)
@@ -531,7 +531,7 @@ void compileCallback(int error_level, const char* file_name, int line_number,
 	CompileArgs* args = (CompileArgs*) user_data;
 
 	std::ostringstream oss;
-	oss << args->rule_config->index << ":" << line_number << ":" << message;
+	oss << args->rule_config->index << ":" << line_number << ":" << message << ":" << file_name;
 
 	if (error_level == YARA_ERROR_LEVEL_WARNING)
 		args->configure->warnings.push_back(oss.str());
@@ -1088,7 +1088,7 @@ NAN_METHOD(ScannerWrap::Scan) {
 			scan_req,
 			callback
 		);
-	
+
 	async_scan->matched_bytes = matched_bytes;
 
 	Nan::AsyncQueueWorker(async_scan);

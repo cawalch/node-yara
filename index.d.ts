@@ -1,24 +1,21 @@
-export var CompileRulesError: typeof CompileRulesError;
-export var Scanner: typeof Scanner;
-export var MetaType: any;
-export var ScanFlag: any;
 export var VariableType: any;
-export function createScanner(options: any): Scanner;
+export function createScanner(options?: any): Scanner;
 export function initialize(cb: any): any;
+export function initializeAsync(): Promise<any>;
 export function libyaraVersion(): any;
-declare function CompileRulesError(message: any): void;
-declare class CompileRulesError {
+export declare class CompileRulesError {
     constructor(message: any);
     name: string;
     message: any;
 }
-declare function Scanner(options: any): void;
-declare class Scanner {
+export declare class Scanner {
     constructor(options: any);
     yara: any;
     getRules(): any;
     reconfigureVariables(options: any): any;
+    configureAsync(options: any): Promise<any>;
     configure(options: any, cb: any): any;
+    scanAsync(req: any): Promise<any>;
     scan(req: any, cb: any): any;
 }
 export {};

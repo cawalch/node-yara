@@ -97,6 +97,8 @@ Scanner.prototype.configure = function(options, cb) {
 	})
 }
 
+Scanner.prototype.configureAsync = util.promisify(Scanner.prototype.configure);
+
 Scanner.prototype.scan = function(req, cb) {
 	if (req.buffer) {
 		if (! req.offset)
@@ -135,6 +137,8 @@ Scanner.prototype.scan = function(req, cb) {
 	})
 }
 
+Scanner.prototype.scanAsync = util.promisify(Scanner.prototype.scan);
+
 exports.CompileRulesError = CompileRulesError
 
 exports.Scanner = Scanner
@@ -152,6 +156,8 @@ exports.createScanner = function(options) {
 exports.initialize = function(cb) {
 	return yara.initialize(cb)
 }
+
+exports.initializeAsync = util.promisify(exports.initialize);
 
 exports.libyaraVersion = function() {
 	return yara.libyaraVersion()

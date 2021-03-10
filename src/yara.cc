@@ -445,6 +445,10 @@ public:
 									: NULL
 						);
 				}
+
+				if (error_count > 0) {
+					break;
+				}
 			}
 
 			if (error_count == 0) {
@@ -515,7 +519,7 @@ void compileCallback(int error_level, const char* file_name, int line_number,
 	CompileArgs* args = (CompileArgs*) user_data;
 
 	std::ostringstream oss;
-	oss << args->rule_config->index << ":" << line_number << ":" << message;
+	oss << args->rule_config->index << ":" << line_number << ":" << message << ":" << file_name;
 
 	if (error_level == YARA_ERROR_LEVEL_WARNING)
 		args->configure->warnings.push_back(oss.str());

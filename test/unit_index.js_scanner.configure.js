@@ -63,6 +63,30 @@ describe("index.js", function() {
 				})
 		})
 
+		it("rules.string - errors if more than one bad rule", function(done) {
+			var scanner = yara.createScanner()
+
+			scanner.configure({
+					rules: [
+						{string: "rule bad {}"},
+						{string: "rule bad {}"}
+					]
+				}, function(error) {
+					assert(error instanceof yara.CompileRulesError)
+					assert(error.message == "Error compiling rules")
+
+					var expErrors = [{
+						index: 0,
+						line: 1,
+						message: "syntax error, unexpected '}', expecting <condition>"
+					}]
+
+					assert.deepEqual(error.errors, expErrors)
+
+					done()
+				})
+		})
+
 		it("rules.string - valid", function(done) {
 			var scanner = yara.createScanner()
 

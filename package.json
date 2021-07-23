@@ -1,5 +1,5 @@
 {
-  "name": "yara",
+  "name": "@automattic/yara",
   "version": "2.2.0",
   "description": "YARA support for Node.js",
   "main": "index.js",

@@ -24,7 +24,7 @@ This module is installed using [node package manager (npm)][npm]:
 	# during installation using node-gyp.  A suitable build chain
 	# must be configured before installation.
 
-	npm install @automattic/yara
+	npm i --save "yara@npm:@automattic/yara@latest"
 
 It is loaded using the `require()` function:
 

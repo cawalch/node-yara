@@ -1,5 +1,7 @@
 # This workflow will publish this package to npm on each release created.
 # NPM_TOKEN secret needs to be created via https://www.npmjs.com/settings/a8c/tokens/ (choose automation token) and stored in this repository.
+#
+# See https://docs.github.com/en/actions/guides/publishing-nodejs-packages#publishing-packages-to-the-npm-registry
 
 name: Publish to npm
 

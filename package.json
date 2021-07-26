@@ -1,7 +1,7 @@
 {
-  "name": "yara",
-  "version": "2.2.0",
-  "description": "YARA support for Node.js",
+  "name": "@automattic/yara",
+  "version": "2.3.0",
+  "description": "Automattic's fork of YARA support for Node.js",
   "main": "index.js",
   "directories": {
     "example": "example"
@@ -22,7 +22,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git://github.com/nospaceships/node-yara.git"
+    "url": "git://github.com/Automattic/node-yara.git"
   },
   "keywords": [
     "libyara",

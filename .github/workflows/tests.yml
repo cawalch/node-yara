@@ -22,14 +22,20 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v1
+      uses: actions/setup-node@master
       with:
+        cache: npm
         node-version: ${{ matrix.node-version }}
 
     - name: Install dependencies
       run: |
         sudo apt-get install libyara-dev
-        npm install
+
+    - name: Build binaries with node-pre-gyp
+      run: |
+        npm install --build-from-source
+
+        npm install -g node-pre-gyp && node-pre-gyp unpublish package publish
 
 #     - name: Run tests
 #       run: npm test

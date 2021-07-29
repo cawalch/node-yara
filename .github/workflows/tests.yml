@@ -26,12 +26,15 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
 
+    # libyara 3.9 is supported
     - name: Install dependencies
       run: |
         sudo apt-get install libyara-dev
+        yara --version
 
     - name: Build binaries with node-pre-gyp
       run: |
+        set -x
         npm install --build-from-source
 
         npm install -g @mapbox/node-pre-gyp && node-pre-gyp unpublish package publish

@@ -5,7 +5,7 @@ This module implements [YARA][yara] bindings for [Node.js][nodejs].
 
 **This module is supported on Linux and MacOS (using homebrew) platforms only**
 
-This module uses the installed version of libyara.  You should download,
+This module uses the installed version of libyara 3.9. You should download,
 compile and install your preferred version, or use one of the following
 commands using your system package manager:
 

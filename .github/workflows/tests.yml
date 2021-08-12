@@ -40,7 +40,7 @@ jobs:
         npm install --build-from-source
 
         ls -lh ./build/Release
-        md5sum ./build/Release/yara.node
+        md5sum ./build/Release/yara.node || md5 ./build/Release/yara.node || true
 
 #     - name: Run tests
 #       run: npm test

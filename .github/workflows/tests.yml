@@ -17,13 +17,18 @@ jobs:
         - '14.x'
         - '16.x'
         os:
-        - ubuntu-latest
-        - macos-latest
+        - 'ubuntu-latest'
+        - 'macos-latest'
 
     runs-on: ${{ matrix.os }}
 
     steps:
     - uses: actions/checkout@v2
+
+    - name: Setup MacOs
+      if: matrix.os == 'macos-latest'
+      run: brew install autoconf automake
+
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@master
       with:

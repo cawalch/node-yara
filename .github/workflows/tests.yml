@@ -27,7 +27,10 @@ jobs:
 
     - name: Setup MacOs
       if: matrix.os == 'macos-latest'
-      run: brew install autoconf automake
+      run: brew install \
+        autoconf \
+        automake \
+        libmagic
 
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@master

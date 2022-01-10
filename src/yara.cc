@@ -41,10 +41,19 @@ enum VarType {
 
 #define ERROR_UNKNOWN_STRING "ERROR_UNKNOWN"
 
+#if YR_MAJOR_VERSION >= 4
+void compileCallback(int error_level, const char* file_name, int line_number,
+		const YR_RULE* rule, const char* message, void* user_data);
+#else
 void compileCallback(int error_level, const char* file_name, int line_number,
 		const char* message, void* user_data);
+#endif
 
+#if YR_MAJOR_VERSION >= 4
+int scanCallback(YR_SCAN_CONTEXT* scan_context, int message, void* data, void* param);
+#else
 int scanCallback(int message, void* data, void* param);
+#endif
 
 const char* getErrorString(int code) {
 	size_t count = error_codes.count(code);
@@ -513,9 +522,13 @@ private:
 	RuleConfigList* rule_configs_;
 	VarConfigList* var_configs_;
 };
-
+#if YR_MAJOR_VERSION >= 4
+void compileCallback(int error_level, const char* file_name, int line_number,
+		const YR_RULE* rule, const char* message, void* user_data) {
+#else
 void compileCallback(int error_level, const char* file_name, int line_number,
 		const char* message, void* user_data) {
+#endif
 	CompileArgs* args = (CompileArgs*) user_data;
 
 	std::ostringstream oss;
@@ -860,7 +873,11 @@ private:
 	ScanReq* scan_req_;
 };
 
+#if YR_MAJOR_VERSION >= 4
+int scanCallback(YR_SCAN_CONTEXT* scan_context, int message, void* data, void* param) {
+#else
 int scanCallback(int message, void* data, void* param) {
+#endif
 	AsyncScan* async_scan = (AsyncScan*) param;
 
 	YR_RULE* rule;
@@ -896,7 +913,11 @@ int scanCallback(int message, void* data, void* param) {
 			}
 
 			yr_rule_strings_foreach(rule, string) {
+				#if YR_MAJOR_VERSION >= 4
+				yr_string_matches_foreach(scan_context, string, match) {
+				#else
 				yr_string_matches_foreach(string, match) {
+				#endif
 					std::ostringstream oss;
 					oss << match->offset << ":" << match->match_length << ":" << string->identifier;
 

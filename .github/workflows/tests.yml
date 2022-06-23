@@ -14,8 +14,9 @@ jobs:
       fail-fast: false
       matrix:
         node-version:
-        - '14.x'
-        - '16.x'
+        - '14'
+        - '16'
+        - '18'
         os:
         - 'ubuntu'
         - 'macos'
@@ -45,7 +46,7 @@ jobs:
     - name: Upload binaries as Action run artifacts
       uses: actions/upload-artifact@v2
       with:
-        name: node${{ matrix.target-node }}-${{ matrix.os }}-yara
+        name: node${{ matrix.node-version }}-${{ matrix.os }}-yara
         path: ./build/Release/yara.node
 
 #     - name: Run tests

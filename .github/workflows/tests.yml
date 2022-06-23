@@ -49,5 +49,7 @@ jobs:
         name: node${{ matrix.node-version }}-${{ matrix.os }}-yara.node
         path: ./build/Release/yara.node
 
-#     - name: Run tests
-#       run: npm test
+    - name: Run tests
+      run: |
+        npm test || true
+

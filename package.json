@@ -10,11 +10,6 @@
     "nan": "2.14.*",
     "typescript": "^3.8.3"
   },
-  "binary": {
-    "module_name": "yara",
-    "module_path": "./lib/binding/",
-    "host": "https://your_module.s3-us-west-1.amazonaws.com"
-  },
   "contributors": [
     {
       "name": "Stephen Vickers",

@@ -50,6 +50,4 @@ jobs:
         path: ./build/Release/yara.node
 
     - name: Run tests
-      run: |
-        npm test || true
-
+      run: npm test

@@ -10,26 +10,44 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
-
     strategy:
       fail-fast: false
       matrix:
         node-version:
-        - '14.x'
-        - '16.x'
+        - '14'
+        - '16'
+        - '18'
+        os:
+        - 'ubuntu'
+        - 'macos'
+
+    runs-on: ${{ matrix.os }}-latest
 
     steps:
     - uses: actions/checkout@v2
+
+    - name: Setup MacOs
+      if: matrix.os == 'macos'
+      run: brew install autoconf automake libmagic
+
     - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v1
+      uses: actions/setup-node@master
       with:
         node-version: ${{ matrix.node-version }}
 
-    - name: Install dependencies
+    - name: Build binaries with node-pre-gyp
       run: |
-        sudo apt-get install libyara-dev
-        npm install
+        set -x
+        npm install --build-from-source
+
+        ls -lh ./build/Release
+        md5sum ./build/Release/yara.node || md5 ./build/Release/yara.node || true
+
+    - name: Upload binaries as Action run artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: node${{ matrix.node-version }}-${{ matrix.os }}-yara.node
+        path: ./build/Release/yara.node
 
     - name: Run tests
       run: npm test

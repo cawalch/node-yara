@@ -7,6 +7,7 @@
 #include <string>
 #include <sstream>
 #include <mutex>
+#include <iostream>
 
 #include <errno.h>
 #include <stdio.h>
@@ -532,7 +533,11 @@ void compileCallback(int error_level, const char* file_name, int line_number,
 	CompileArgs* args = (CompileArgs*) user_data;
 
 	std::ostringstream oss;
-	oss << args->rule_config->index << ":" << line_number << ":" << message << ":" << file_name;
+	oss << args->rule_config->index << ":" << line_number << ":" << message << ":";
+
+	if (file_name != NULL) {
+		oss << file_name;
+	}
 
 	if (error_level == YARA_ERROR_LEVEL_WARNING)
 		args->configure->warnings.push_back(oss.str());
@@ -965,6 +970,8 @@ int scanCallback(int message, void* data, void* param) {
 NAN_METHOD(ScannerWrap::ReconfigureVariables) {
 	Nan::HandleScope scope;
 
+
+
 	ScannerWrap* scanner = ScannerWrap::Unwrap<ScannerWrap>(info.This());
 
 	std::lock_guard<std::mutex> lock(scanner->mutex);
@@ -1173,7 +1180,7 @@ NAN_METHOD(ScannerWrap::Scan) {
 
 	Local<Object> req = Nan::To<Object>(info[0]).ToLocalChecked();
 
-	char* filename = NULL;
+	std::string filename;
 	char *buffer = NULL;
 	int64_t offset = 0;
 	int64_t length = 0;
@@ -1181,8 +1188,10 @@ NAN_METHOD(ScannerWrap::Scan) {
 	int32_t timeout = 0;
 	int32_t matched_bytes = 0;
 
+
 	if (Nan::Get(req, Nan::New("filename").ToLocalChecked()).ToLocalChecked()->IsString()) {
 		Local<String> s = Nan::To<String>(Nan::Get(req, Nan::New("filename").ToLocalChecked()).ToLocalChecked()).ToLocalChecked();
+
 		filename = *Nan::Utf8String(s);
 	} else if (Nan::Get(req, Nan::New("buffer").ToLocalChecked()).ToLocalChecked()->IsObject()) {
 		Local<Object> o = Nan::To<Object>(Nan::Get(req, Nan::New("buffer").ToLocalChecked()).ToLocalChecked()).ToLocalChecked();
@@ -1247,7 +1256,7 @@ NAN_METHOD(ScannerWrap::Scan) {
 		}
 	}
 
-	if ((! filename) && (! buffer)) {
+	if ((filename.empty()) && (! buffer)) {
 		Nan::ThrowError("Either filename of buffer is required");
 		return;
 	}
@@ -1267,8 +1276,9 @@ NAN_METHOD(ScannerWrap::Scan) {
 
 	ScanReq* scan_req = new ScanReq();
 
-	if (filename)
-		scan_req->filename = filename;
+	if (!filename.empty()) {
+		scan_req->filename = filename.c_str();
+	}		
 
 	scan_req->buffer = buffer;
 	scan_req->offset = offset;
@@ -1289,6 +1299,7 @@ NAN_METHOD(ScannerWrap::Scan) {
 	Nan::AsyncQueueWorker(async_scan);
 
 	info.GetReturnValue().Set(info.This());
+
 }
 
 }; /* namespace yara */

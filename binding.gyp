@@ -10,10 +10,12 @@
         "-fno-rtti"
       ],
       "include_dirs": [
-        "<!(node -e 'require(\"nan\")')"
+        "<!(node -e 'require(\"nan\")')",
+        "./build/yara/include"
       ],
       "libraries": [
-        "-lyara"
+        "-lmagic",
+        "../build/yara/lib/libyara.a"
       ],
       "conditions": [
         [
@@ -24,6 +26,21 @@
             }
           }
         ]
+      ],
+      "actions": [
+        {
+          "action_name": "build_libyara",
+          "inputs": [
+            "deps"
+          ],
+          "outputs": [
+            "build/yara"
+          ],
+          "action": [
+            "make",
+            "libyara"
+          ]
+        }
       ]
     }
   ]

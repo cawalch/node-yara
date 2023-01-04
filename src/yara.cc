@@ -43,9 +43,9 @@ enum VarType {
 #define ERROR_UNKNOWN_STRING "ERROR_UNKNOWN"
 
 void compileCallback(int error_level, const char* file_name, int line_number,
-		const char* message, void* user_data);
+		const YR_RULE* rule, const char* message, void* user_data);
 
-int scanCallback(int message, void* data, void* param);
+int scanCallback(YR_SCAN_CONTEXT* scan_context, int message, void* data, void* param);
 
 const char* getErrorString(int code) {
 	size_t count = error_codes.count(code);
@@ -516,7 +516,7 @@ private:
 };
 
 void compileCallback(int error_level, const char* file_name, int line_number,
-		const char* message, void* user_data) {
+		const YR_RULE* rule, const char* message, void* user_data) {
 	CompileArgs* args = (CompileArgs*) user_data;
 
 	std::ostringstream oss;
@@ -865,7 +865,7 @@ private:
 	ScanReq* scan_req_;
 };
 
-int scanCallback(int message, void* data, void* param) {
+int scanCallback(YR_SCAN_CONTEXT* scan_context, int message, void* data, void* param) {
 	AsyncScan* async_scan = (AsyncScan*) param;
 
 	YR_RULE* rule;
@@ -901,7 +901,7 @@ int scanCallback(int message, void* data, void* param) {
 			}
 
 			yr_rule_strings_foreach(rule, string) {
-				yr_string_matches_foreach(string, match) {
+				yr_string_matches_foreach(scan_context, string, match) {
 					std::ostringstream oss;
 					oss << match->offset << ":" << match->match_length << ":" << string->identifier;
 

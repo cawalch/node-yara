@@ -54,7 +54,7 @@ describe("index.js", function() {
 					var expErrors = [{
 						index: 0,
 						line: 1,
-						message: "syntax error, unexpected '}', expecting <condition>"
+						message: "syntax error"
 					}]
 
 					assert.deepEqual(error.errors, expErrors)
@@ -78,7 +78,7 @@ describe("index.js", function() {
 					var expErrors = [{
 						index: 0,
 						line: 1,
-						message: "syntax error, unexpected '}', expecting <condition>"
+						message: "syntax error"
 					}]
 
 					assert.deepEqual(error.errors, expErrors)
@@ -114,7 +114,7 @@ describe("index.js", function() {
 						{
 							index: 0,
 							line: 4,
-							message: 'Using literal string "stephen" in a boolean operation.'
+							message: 'using literal string "stephen" in a boolean operation.'
 						}
 					]
 
@@ -160,7 +160,7 @@ describe("index.js", function() {
 					var expErrors = [{
 						index: 0,
 						line: 4,
-						message: "syntax error, unexpected hex string, expecting identifier"
+						message: "syntax error"
 					}]
 
 					assert.deepEqual(error.errors, expErrors)

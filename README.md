@@ -5,7 +5,7 @@ This module implements [YARA][yara] bindings for [Node.js][nodejs].
 
 **This module is supported on Linux and MacOS (using homebrew) platforms only**
 
-This module uses the installed version of libyara.  You should download,
+This module uses the installed version of libyara 3.9. You should download,
 compile and install your preferred version, or use one of the following
 commands using your system package manager:
 
@@ -24,7 +24,7 @@ This module is installed using [node package manager (npm)][npm]:
 	# during installation using node-gyp.  A suitable build chain
 	# must be configured before installation.
 
-	npm install yara
+	npm i --save "yara@npm:@automattic/yara@latest"
 
 It is loaded using the `require()` function:
 

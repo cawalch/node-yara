@@ -1,0 +1,53 @@
+# This workflow will do a clean install of node dependencies, build the source code and run tests
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-nodejs-with-github-actions
+
+name: Tests
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version:
+        - '14'
+        - '16'
+        - '18'
+        os:
+        - 'ubuntu'
+        - 'macos'
+
+    runs-on: ${{ matrix.os }}-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Setup MacOs
+      if: matrix.os == 'macos'
+      run: brew install autoconf automake libmagic
+
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@master
+      with:
+        node-version: ${{ matrix.node-version }}
+
+    - name: Build binaries with node-pre-gyp
+      run: |
+        set -x
+        npm install --build-from-source
+
+        ls -lh ./build/Release
+        md5sum ./build/Release/yara.node || md5 ./build/Release/yara.node || true
+
+    - name: Upload binaries as Action run artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: node${{ matrix.node-version }}-${{ matrix.os }}-yara.node
+        path: ./build/Release/yara.node
+
+    - name: Run tests
+      run: npm test

@@ -10,13 +10,34 @@ CFLAGS  += -I/usr/local/include/node
 CFLAGS  += -I/usr/local/include
 LDFLAGS += -L/usr/local/lib
 
-ifeq ($(ARCH),arm64)
+# Check if /opt/homebrew/include exists and add it to CFLAGS
+LIBMAGIC_INCLUDE_PATH := $(wildcard /opt/homebrew/opt/libmagic/include)
+ifneq ($(LIBMAGIC_INCLUDE_PATH),)
+CFLAGS += -I$(LIBMAGIC_INCLUDE_PATH)
+endif
 
+# Check if /opt/homebrew/lib exists and add it to LDFLAGS
+LIBMAGIC_LIB_PATH := $(wildcard /opt/homebrew/opt/libmagic/lib)
+ifneq ($(LIBMAGIC_LIB_PATH),)
+LDFLAGS += -L$(LIBMAGIC_LIB_PATH)
+endif
+
+OPENSSL_LIB_PATH := $(wildcard /opt/homebrew/opt/openssl@3/lib)
+ifneq ($(OPENSSL_LIB_PATH),)
+LDFLAGS += -L$(OPENSSL_LIB_PATH)
+endif
+
+OPENSSL_INCLUDE_PATH := $(wildcard /opt/homebrew/opt/openssl@3/include)
+ifneq ($(OPENSSL_INCLUDE_PATH),)
+CFLAGS += -I$(OPENSSL_INCLUDE_PATH)
+endif
+
+ifeq ($(ARCH),arm64)
 CFLAGS += -I/opt/homebrew/include
 LDFLAGS += -L/opt/homebrew/lib
 endif
 
-endif
+endif 
 
 YARA?=4.2.3
 

@@ -9,6 +9,13 @@ ifeq ($(OSNAME),Darwin)
 CFLAGS  += -I/usr/local/include/node
 CFLAGS  += -I/usr/local/include
 LDFLAGS += -L/usr/local/lib
+
+ifeq ($(ARCH),arm64)
+
+CFLAGS += -I/opt/homebrew/include
+LDFLAGS += -L/opt/homebrew/lib
+endif
+
 endif
 
 YARA?=4.2.3

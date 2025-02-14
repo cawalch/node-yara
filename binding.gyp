@@ -28,6 +28,17 @@
               "GCC_ENABLE_CPP_EXCEPTIONS": "YES"
             }
           }
+        ],
+        [
+          "node_module_version>72",
+          {
+            "cflags_cc": [
+              "-DNAN_NEW_SIGNATURE=1"
+            ],
+            "cflags_c": [
+              "-DNAN_NEW_SIGNATURE=1"
+            ]
+          }
         ]
       ],
       "actions": [

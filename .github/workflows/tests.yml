@@ -1,53 +1,62 @@
 # This workflow will do a clean install of node dependencies, build the source code and run tests
 # For more information see: https://help.github.com/actions/language-and-framework-guides/using-nodejs-with-github-actions
-
 name: Tests
-
 on:
   push:
-    branches: [ master ]
+    branches: [master]
   pull_request:
-
 jobs:
   test:
     strategy:
       fail-fast: false
       matrix:
         node-version:
-        - '14'
-        - '16'
-        - '18'
+          - '18'
+          - '20'
+          - '22'
         os:
-        - 'ubuntu'
-        - 'macos'
-
+          - 'ubuntu'
+          - 'macos'
     runs-on: ${{ matrix.os }}-latest
-
     steps:
-    - uses: actions/checkout@v2
-
-    - name: Setup MacOs
-      if: matrix.os == 'macos'
-      run: brew install autoconf automake libmagic
-
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@master
-      with:
-        node-version: ${{ matrix.node-version }}
-
-    - name: Build binaries with node-pre-gyp
-      run: |
-        set -x
-        npm install --build-from-source
-
-        ls -lh ./build/Release
-        md5sum ./build/Release/yara.node || md5 ./build/Release/yara.node || true
-
-    - name: Upload binaries as Action run artifacts
-      uses: actions/upload-artifact@v2
-      with:
-        name: node${{ matrix.node-version }}-${{ matrix.os }}-yara.node
-        path: ./build/Release/yara.node
-
-    - name: Run tests
-      run: npm test
+      - uses: actions/checkout@v4
+      - name: Setup MacOS
+        if: matrix.os == 'macos'
+        run: |
+          brew install autoconf automake libtool libmagic openssl@3 pkg-config
+          echo "LDFLAGS=-L/opt/homebrew/opt/openssl@3/lib" >> $GITHUB_ENV
+          echo "CFLAGS=-I/opt/homebrew/opt/openssl@3/include" >> $GITHUB_ENV
+      - name: Setup Ubuntu
+        if: matrix.os == 'ubuntu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y autoconf automake libtool libmagic-dev libssl-dev pkg-config
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: Install dependencies
+        run: |
+          # Install nan module first
+          npm install nan
+          # Install remaining dependencies
+          npm install
+      - name: Build YARA
+        run: |
+          mkdir -p deps
+          make libyara
+      - name: Build Node.js binding
+        run: |
+          npm rebuild
+          ls -lh ./build/Release
+          case "${{ matrix.os }}" in
+            "macos") md5 ./build/Release/yara.node ;;
+            *) md5sum ./build/Release/yara.node ;;
+          esac
+      - name: Upload binaries as Action run artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: node${{ matrix.node-version }}-${{ matrix.os }}-yara.node
+          path: ./build/Release/yara.node
+      - name: Run tests
+        run: npm test
